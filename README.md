@@ -37,40 +37,6 @@ tic_tac_toe_ai/
     └── script.js
 ```
 
-## Run locally
-
-**Requirements:** Python 3.10 or newer recommended.
-
-1. Download or clone this repository.
-2. Open a terminal in the project folder.
-3. Create and activate a virtual environment.
-
-Windows PowerShell:
-
-```powershell
-python -m venv .venv
-.venv\\Scripts\\Activate.ps1
-```
-
-macOS/Linux:
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-```
-
-4. Install dependencies:
-
-```bash
-python -m pip install -r requirements.txt
-```
-
-5. Start the application:
-
-```bash
-python app.py
-```
-
 6. Open **http://127.0.0.1:5000** in your browser.
 
 ## How the AI works
@@ -92,23 +58,6 @@ Request JSON:
 The board is an array of 9 strings. Each cell must be `"X"`, `"O"`, or `""`. The API returns the updated board, winner/game status and AI move index.
 
 > This is a portfolio/demo project. For a public production deployment, add stronger turn-history validation, rate limiting, tests, and production server configuration.
-
-## Upload to GitHub
-
-1. Create a new repository on GitHub named `tic-tac-toe-ai`.
-2. Extract this project ZIP.
-3. Open a terminal in the extracted folder and run:
-
-```bash
-git init
-git add .
-git commit -m "Build Tic Tac Toe AI game with Flask"
-git branch -M main
-git remote add origin https://github.com/YOUR-USERNAME/tic-tac-toe-ai.git
-git push -u origin main
-```
-
-Replace `YOUR-USERNAME` with your GitHub username. Do not commit virtual environments, passwords, or secret keys.
 
 ## Possible improvements
 
