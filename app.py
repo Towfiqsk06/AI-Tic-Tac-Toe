@@ -1,100 +1,159 @@
-from flask import Flask, render_template, request, jsonify
-from functools import lru_cache
 
-app = Flask(__name__)
+import math
 
 HUMAN = "X"
 AI = "O"
-EMPTY = ""
+EMPTY = " "
 
-WIN_LINES = (
+WINNING_COMBINATIONS = [
     (0, 1, 2), (3, 4, 5), (6, 7, 8),
     (0, 3, 6), (1, 4, 7), (2, 5, 8),
-    (0, 4, 8), (2, 4, 6),
-)
+    (0, 4, 8), (2, 4, 6)
+]
 
-def winner(board):
-    for a, b, c in WIN_LINES:
-        if board[a] and board[a] == board[b] == board[c]:
+
+def display_board(board):
+    print()
+    for row in range(3):
+        cells = []
+        for col in range(3):
+            index = row * 3 + col
+            value = board[index] if board[index] != EMPTY else str(index + 1)
+            cells.append(f" {value} ")
+        print("|".join(cells))
+        if row < 2:
+            print("---+---+---")
+    print()
+
+
+def get_winner(board):
+    for a, b, c in WINNING_COMBINATIONS:
+        if board[a] != EMPTY and board[a] == board[b] == board[c]:
             return board[a]
     return None
 
-def game_over(board):
-    return winner(board) is not None or EMPTY not in board
 
-@lru_cache(maxsize=100000)
-def minimax(board_tuple, maximizing):
-    """Return the best achievable score for the AI (O) or human (X)."""
-    board = list(board_tuple)
-    result = winner(board)
-    if result == AI:
-        return 1
-    if result == HUMAN:
-        return -1
-    if EMPTY not in board:
+def is_draw(board):
+    return get_winner(board) is None and EMPTY not in board
+
+
+def minimax(board, depth, is_maximizing):
+    winner = get_winner(board)
+
+    if winner == AI:
+        return 10 - depth
+    if winner == HUMAN:
+        return depth - 10
+    if is_draw(board):
         return 0
 
-    if maximizing:
-        best = -2
-        for i, cell in enumerate(board):
-            if cell == EMPTY:
+    if is_maximizing:
+        best_score = -math.inf
+
+        for i in range(9):
+            if board[i] == EMPTY:
                 board[i] = AI
-                best = max(best, minimax(tuple(board), False))
+                score = minimax(board, depth + 1, False)
                 board[i] = EMPTY
-        return best
+                best_score = max(best_score, score)
 
-    best = 2
-    for i, cell in enumerate(board):
-        if cell == EMPTY:
+        return best_score
+
+    best_score = math.inf
+
+    for i in range(9):
+        if board[i] == EMPTY:
             board[i] = HUMAN
-            best = min(best, minimax(tuple(board), True))
+            score = minimax(board, depth + 1, True)
             board[i] = EMPTY
-    return best
+            best_score = min(best_score, score)
 
-def best_ai_move(board):
-    best_score = -2
+    return best_score
+
+
+def get_ai_move(board):
+    best_score = -math.inf
     best_move = None
-    for i, cell in enumerate(board):
-        if cell == EMPTY:
+
+    for i in range(9):
+        if board[i] == EMPTY:
             board[i] = AI
-            score = minimax(tuple(board), False)
+            score = minimax(board, 0, False)
             board[i] = EMPTY
+
             if score > best_score:
-                best_score, best_move = score, i
+                best_score = score
+                best_move = i
+
     return best_move
 
-@app.get("/")
-def index():
-    return render_template("index.html")
 
-@app.post("/api/move")
-def move():
-    data = request.get_json(silent=True) or {}
-    board = data.get("board")
-    if not isinstance(board, list) or len(board) != 9:
-        return jsonify({"error": "Board must be a list of 9 cells."}), 400
-    if any(cell not in ("X", "O", "") for cell in board):
-        return jsonify({"error": "Invalid board cell."}), 400
+def play_game():
+    board = [EMPTY] * 9
 
-    # The server accepts only a valid human turn: X starts and counts must match.
-    x_count, o_count = board.count("X"), board.count("O")
-    if x_count != o_count + 1:
-        return jsonify({"error": "Invalid turn state."}), 400
-    if winner(board) or game_over(board):
-        return jsonify({"board": board, "winner": winner(board), "game_over": True})
+    print("=" * 32)
+    print("       TIC TAC TOE WITH AI")
+    print("=" * 32)
+    print("You are X | AI is O")
+    print("Choose a position from 1 to 9.")
 
-    move_index = best_ai_move(board)
-    if move_index is not None:
-        board[move_index] = AI
+    while True:
+        display_board(board)
 
-    result = winner(board)
-    return jsonify({
-        "board": board,
-        "winner": result,
-        "game_over": game_over(board),
-        "draw": game_over(board) and result is None,
-        "ai_move": move_index
-    })
+        # Human player's turn
+        try:
+            position = int(input("Enter your position (1-9): "))
+
+            if position < 1 or position > 9:
+                print("Please enter a number from 1 to 9.")
+                continue
+
+            index = position - 1
+
+            if board[index] != EMPTY:
+                print("That position is already occupied!")
+                continue
+
+            board[index] = HUMAN
+
+        except ValueError:
+            print("Invalid input. Please enter a number.")
+            continue
+
+        if get_winner(board) == HUMAN:
+            display_board(board)
+            print("Congratulations! You win!")
+            break
+
+        if is_draw(board):
+            display_board(board)
+            print("It's a draw!")
+            break
+
+        # AI player's turn
+        print("AI is thinking...")
+        ai_move = get_ai_move(board)
+        board[ai_move] = AI
+        print(f"AI selected position {ai_move + 1}.")
+
+        if get_winner(board) == AI:
+            display_board(board)
+            print("AI wins! Try again.")
+            break
+
+        if is_draw(board):
+            display_board(board)
+            print("It's a draw!")
+            break
+
+    print("Game over!")
+
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    while True:
+        play_game()
+        again = input("\nPlay again? (y/n): ").strip().lower()
+
+        if again != "y":
+            print("Thanks for playing!")
+            break
